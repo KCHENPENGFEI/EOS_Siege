@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Tue Jun 25 14:01:32 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Thu Jun 27 23:23:55 2019",
     "version": "eosio::abi/1.1",
     "structs": [
         {
@@ -27,11 +27,41 @@
             ]
         },
         {
+            "name": "bidding_ranking",
+            "base": "",
+            "fields": [
+                {
+                    "name": "ranking",
+                    "type": "uint64"
+                },
+                {
+                    "name": "player",
+                    "type": "name"
+                },
+                {
+                    "name": "bidding_price",
+                    "type": "asset"
+                },
+                {
+                    "name": "bidding_time",
+                    "type": "string"
+                }
+            ]
+        },
+        {
             "name": "city_info",
             "base": "",
             "fields": [
                 {
                     "name": "city_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "city_name",
+                    "type": "string"
+                },
+                {
+                    "name": "defense_index",
                     "type": "uint64"
                 },
                 {
@@ -44,7 +74,7 @@
                 },
                 {
                     "name": "produced_bonus",
-                    "type": "float64"
+                    "type": "uint64"
                 }
             ]
         },
@@ -247,12 +277,34 @@
                     "type": "string"
                 }
             ]
+        },
+        {
+            "name": "updateranktb",
+            "base": "",
+            "fields": [
+                {
+                    "name": "ranking",
+                    "type": "uint64"
+                },
+                {
+                    "name": "player",
+                    "type": "name"
+                },
+                {
+                    "name": "bidding_price",
+                    "type": "asset"
+                },
+                {
+                    "name": "bidding_time",
+                    "type": "string"
+                }
+            ]
         }
     ],
     "types": [
         {
             "new_type_name": "point",
-            "type": "float64"
+            "type": "uint64"
         },
         {
             "new_type_name": "soldier",
@@ -309,6 +361,11 @@
             "name": "transfer",
             "type": "transfer",
             "ricardian_contract": ""
+        },
+        {
+            "name": "updateranktb",
+            "type": "updateranktb",
+            "ricardian_contract": ""
         }
     ],
     "tables": [
@@ -329,6 +386,13 @@
         {
             "name": "players",
             "type": "player_info",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "rank",
+            "type": "bidding_ranking",
             "index_type": "i64",
             "key_names": [],
             "key_types": []

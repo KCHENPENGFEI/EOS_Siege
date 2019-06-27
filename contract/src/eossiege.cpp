@@ -14,6 +14,8 @@ void EOSSiege::allstart()
         {
             city_it = _cities.emplace(_self, [&](auto &new_city) {
                 new_city.city_id = i;
+                new_city.city_name = city_name_map.at(i);
+                new_city.defense_index = city_defense_index_map.at(i);
             });
         }
     }
@@ -43,10 +45,10 @@ void EOSSiege::transfer(name player_name, name to, asset quantity, string memo)
         
         auto sym = quantity.symbol;
         eosio_assert(sym.is_valid(), "invalid symbol name");
-        eosio_assert(sym == symbol("ZJUBCA", 4), "invalid symbol name");
+        eosio_assert(sym == symbol("EOS", 4), "invalid symbol name");
         
         eosio_assert(quantity.is_valid(), "invalid quantity");
-        eosio_assert(quantity.amount == ENTER_FEE, "must transfer 2.0000 ZJUBCA to enter the game");
+        eosio_assert(quantity.amount == ENTER_FEE, "must transfer 0.5 EOS to enter the game");
         //startgame(player_name);
         //Authrozied
         //require_auth(player_name);
@@ -91,7 +93,7 @@ void EOSSiege::transfer(name player_name, name to, asset quantity, string memo)
         
         auto sym = quantity.symbol;
         eosio_assert(sym.is_valid(), "invalid symbol name");
-        eosio_assert(sym == symbol("ZJUBCA", 4), "invalid symbol name");
+        eosio_assert(sym == symbol("EOS", 4), "invalid symbol name");
         
         eosio_assert(quantity.is_valid(), "invalid quantity");
         eosio_assert(quantity.amount == OCCUPATION_FEE, "must transfer 1.0000 ZJUBCA to occupy a city");
@@ -131,7 +133,7 @@ void EOSSiege::transfer(name player_name, name to, asset quantity, string memo)
         
         auto sym = quantity.symbol;
         eosio_assert(sym.is_valid(), "invalid symbol name");
-        eosio_assert(sym == symbol("ZJUBCA", 4), "invalid symbol name");
+        eosio_assert(sym == symbol("EOS", 4), "invalid symbol name");
         
         eosio_assert(quantity.is_valid(), "invalid quantity");
         
@@ -169,6 +171,37 @@ void EOSSiege::transfer(name player_name, name to, asset quantity, string memo)
     //     .send();
 }
 
+void EOSSiege::updateranktb(uint64_t ranking, name player, asset bidding_price, string bidding_time)
+{
+  eosio_assert(ranking >= 1, "ranking is out of range");
+  eosio_assert(ranking <= 25, "ranking is out of range");
+  auto sym = bidding_price.symbol;
+  eosio_assert(sym.is_valid(), "invalid symbol name");
+  eosio_assert(sym == symbol("EOS", 4), "invalid symbol name");
+  eosio_assert(bidding_price.is_valid(), "invalid bidding_price");
+  
+  auto rank_it = _rank.find(ranking);
+  if(rank_it == _rank.end())
+  {
+    rank_it = _rank.emplace(_self, [&](auto &new_rank){
+      new_rank.ranking = ranking;
+      new_rank.player = player;
+      new_rank.bidding_price = bidding_price;
+      new_rank.bidding_time = bidding_time;
+    });
+  }
+  else
+  {
+    auto &rank_it = _rank.get(ranking, "Cannot find the ranking!");
+    
+    _rank.modify(rank_it, same_payer, [&](auto content){
+      content.player = player;
+      content.bidding_price = bidding_price;
+      content.bidding_time = bidding_time;
+    });
+  }
+}
+
 void EOSSiege::departure(name player_name)
 {
     //Authrozied
@@ -196,11 +229,11 @@ void EOSSiege::leavecity(name player_name)
     //cities_table _cities(_self, _self.value);
     auto &city_it = _cities.get(city_id, "Cannot find the city!");
     double produced_bonus = city_it.produced_bonus;
-    auto quantity = asset((produced_bonus + 0.01) * 10000, symbol("ZJUBCA", 4));     //此处bonus仍然是固定的
+    auto quantity = asset(produced_bonus, symbol("EOS", 4));     //此处bonus仍然是固定的
 
     action(
         permission_level{_self, "active"_n},
-        "zjubca.token"_n, "transfer"_n,
+        "eosio.token"_n, "transfer"_n,
         std::make_tuple(_self, player_name, quantity,
                         std::string("You have got the bonus and left the city!")))
         .send();
@@ -215,7 +248,7 @@ void EOSSiege::leavecity(name player_name)
     _cities.modify(city_it, same_payer, [&](auto &content) {
         content.if_be_occupied = FALSE;
         content.belong_player = name(0);
-        content.produced_bonus = 0.1;
+        content.produced_bonus = 0;
     });
 
     //global_table _global(_self, _self.value);
@@ -279,11 +312,11 @@ void EOSSiege::defense(name player_name, name attacker_name, uint64_t choice)
         //cities_table _cities(_self, _self.value);
         auto &city_it = _cities.get(city_id, "Cannot find the city!");
         double produced_bonus = city_it.produced_bonus;
-        auto quantity = asset((produced_bonus + 0.01) * 10000, symbol("ZJUBCA", 4));
+        auto quantity = asset(produced_bonus, symbol("EOS", 4));
 
         action(
             permission_level{_self, "active"_n},
-            "zjubca.token"_n, "transfer"_n,
+            "eosio.token"_n, "transfer"_n,
             std::make_tuple(_self, player_name, quantity,
                             std::string("You have got the bonus and left the city!")))
             .send();
@@ -299,7 +332,7 @@ void EOSSiege::defense(name player_name, name attacker_name, uint64_t choice)
         //modify city's data
         _cities.modify(city_it, same_payer, [&](auto &content) {
             content.belong_player = attacker_name;
-            content.produced_bonus = 0.01;
+            content.produced_bonus = 0;
         });
 
         //modify attacker's data
@@ -452,11 +485,11 @@ void EOSSiege::getresult(name player_name)      //赢家只负责更新自己的
             //cities_table _cities(_self, _self.value);
             //auto &city_it = _cities.get(city_id, "Cannot find the city!");
             double produced_bonus = city_it.produced_bonus;
-            auto quantity = asset((produced_bonus + 0.01) * 10000, symbol("ZJUBCA", 4));
+            auto quantity = asset(produced_bonus, symbol("EOS", 4));
 
             action(
                 permission_level{_self, "active"_n},
-                "zjubca.token"_n, "transfer"_n,
+                "eosio.token"_n, "transfer"_n,
                 std::make_tuple(_self, player_name, quantity,
                                 std::string("You have got the bonus and left the city!")))
                 .send();          //take away the bonus
@@ -470,15 +503,15 @@ void EOSSiege::getresult(name player_name)      //赢家只负责更新自己的
             //modify city's data
             _cities.modify(city_it, same_payer, [&](auto &content) {
                 content.belong_player = opponent;
-                content.produced_bonus = 0.01;
+                content.produced_bonus = 0;
             });
 
             //transfer the EOS to the attacker
-            auto lost_value = asset(player_it.game_data.all_soldiers_point * 10000, symbol("ZJUBCA", 4));
+            auto lost_value = asset(player_it.game_data.all_soldiers_point, symbol("EOS", 4));
 
             action(
                 permission_level{_self, "active"_n},
-                "zjubca.token"_n, "transfer"_n,
+                "eosio.token"_n, "transfer"_n,
                 std::make_tuple(_self, opponent, lost_value,
                                 std::string("You got my EOS!")))
                 .send();      //当初购买兵力的token储存在合约中，现在转给获胜者
@@ -500,11 +533,11 @@ void EOSSiege::getresult(name player_name)      //赢家只负责更新自己的
             });
 
             //transfer the EOS to the defender
-            auto lost_value = asset(player_it.game_data.all_soldiers_point * 10000, symbol("ZJUBCA", 4));
+            auto lost_value = asset(player_it.game_data.all_soldiers_point, symbol("EOS", 4));
 
             action(
                 permission_level{_self, "active"_n},
-                "zjubca.token"_n, "transfer"_n,
+                "eosio.token"_n, "transfer"_n,
                 std::make_tuple(_self, opponent, lost_value,
                                 std::string("You got my EOS!")))
                 .send();
@@ -512,11 +545,11 @@ void EOSSiege::getresult(name player_name)      //赢家只负责更新自己的
         else
         {
             /* do nothing */
-            auto back_value = asset(player_it.game_data.all_soldiers_point * 10000, symbol("ZJUBCA", 4));
+            auto back_value = asset(player_it.game_data.all_soldiers_point, symbol("EOS", 4));
             
             action(
                 permission_level{_self, "active"_n},
-                "zjubca.token"_n, "transfer"_n,
+                "eosio.token"_n, "transfer"_n,
                 std::make_tuple(_self, player_name, back_value,
                                 std::string("Return your token!")))
                 .send();
@@ -563,11 +596,11 @@ void EOSSiege::allend()
         double produced_bonus = city_it.produced_bonus;
         if (own_name.value != 0 && produced_bonus != 0)
         {
-            auto quantity = asset((produced_bonus + 0.01) * 10000, symbol("ZJUBCA", 4));
+            auto quantity = asset(produced_bonus, symbol("EOS", 4));
 
             action(
                 permission_level{_self, "active"_n},
-                "zjubca.token"_n, "transfer"_n,
+                "eosio.token"_n, "transfer"_n,
                 std::make_tuple(_self, own_name, quantity,
                                 std::string("You have got the bonus and left the city!")))
                 .send();
@@ -594,6 +627,13 @@ void EOSSiege::allend()
     {
         players_begin_it = _players.erase(players_begin_it);
     }
+    
+    /*delete the bidding ranking table */
+    auto rank_begin_it = _rank.begin();
+    while (rank_begin_it != _rank.end())
+    {
+      rank_begin_it = _rank.erase(rank_begin_it);
+    }
 }
 
 
@@ -608,6 +648,9 @@ extern "C" {
             {
             case "allstart"_n.value:
                 execute_action(name(receiver), name(code), &EOSSiege::allstart);
+                break;
+            case "updateranktb"_n.value:
+                execute_action(name(receiver), name(code), &EOSSiege::updateranktb);
                 break;
             case "departure"_n.value:
                 execute_action(name(receiver), name(code), &EOSSiege::departure);
@@ -637,7 +680,7 @@ extern "C" {
                 break;
             }
         }
-        else if (code == "zjubca.token"_n.value && action == "transfer"_n.value)
+        else if (code == "eosio.token"_n.value && action == "transfer"_n.value)
         {
             execute_action(name(receiver), name(receiver), &EOSSiege::transfer);
         }
