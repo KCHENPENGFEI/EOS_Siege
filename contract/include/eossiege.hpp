@@ -28,8 +28,10 @@ class [[eosio::contract("eossiege")]] EOSSiege : contract {
 
     //game satus游戏状态
     enum game_status: int8_t {
-        RUNNING = 1,
-        END = 0
+        STARTING = 1,
+        BIDDING = 2,
+        RUNNING = 3,
+        END = 4
     };
 
     //soldier type 兵种：步兵、矛兵、盾兵、弓箭手、骑兵
@@ -161,6 +163,7 @@ class [[eosio::contract("eossiege")]] EOSSiege : contract {
     {
         uint64_t key = 1;
         uint64_t cities_remain = 25;  // total quantity of cities is 5
+        uint64_t game_stage = 0;
         double produce_rate;
 
         auto primary_key() const {return key;}
@@ -174,18 +177,35 @@ class [[eosio::contract("eossiege")]] EOSSiege : contract {
       asset bidding_price;
       string bidding_time;
       
-      auto primary_key() const {return ranking;}
+      auto primary_key() const {return player.value;}
+      // name get_name()
+      // {
+      //   return player.value;
+      // }
+    };
+    
+    // @abi table frozen
+    struct [[eosio::table]] frozen_info
+    {
+      name player;
+      uint64_t frozen_rank;
+      string frozen_time;
+      
+      auto primary_key() const { return player.value; }
     };
 
     typedef multi_index<"players"_n, player_info> players_table;
     typedef multi_index<"cities"_n, city_info> cities_table;
     typedef multi_index<"global"_n, global_info> global_table;
+    //typedef multi_index<"rank"_n, bidding_ranking, indexed_by<"player"_n, const_mem_fun<bidding_ranking, name, &bidding_ranking::get_name>>> ranking_table;
     typedef multi_index<"rank"_n, bidding_ranking> ranking_table;
+    typedef multi_index<"frozen"_n, frozen_info> frozen_table;
     
     players_table _players;
     cities_table _cities;
     global_table _global;
     ranking_table _rank;
+    frozen_table _frozen;
 
 
     int battleresult(soldier soldier1, soldier soldier2);
@@ -198,13 +218,16 @@ class [[eosio::contract("eossiege")]] EOSSiege : contract {
     // siege( account_name owner ):contract(owner), _players(owner, owner), _cities(owner, owner), _global(owner, owner)
     // {}
     EOSSiege(name receiver, name code, datastream<const char*> ds):contract(receiver, code, ds),
-      _players(receiver, code.value), _cities(receiver, code.value), _global(receiver, code.value), _rank(receiver, code.value){}
+      _players(receiver, code.value), _cities(receiver, code.value), _global(receiver, code.value),
+      _rank(receiver, code.value), _frozen(receiver, code.value){}
 
     [[eosio::action]] void allstart();
     
     [[eosio::action]] void transfer(name from, name to, asset quantity, string memo);
     
     [[eosio::action]] void updateranktb(uint64_t ranking, name player, asset bidding_price, string bidding_time);
+    
+    [[eosio::action]] void updatestage(uint64_t stage);
     
     [[eosio::action]] void departure(name player_name);
 

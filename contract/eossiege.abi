@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Thu Jun 27 23:23:55 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Fri Jun 28 16:05:53 2019",
     "version": "eosio::abi/1.1",
     "structs": [
         {
@@ -117,6 +117,24 @@
             ]
         },
         {
+            "name": "frozen_info",
+            "base": "",
+            "fields": [
+                {
+                    "name": "player",
+                    "type": "name"
+                },
+                {
+                    "name": "frozen_rank",
+                    "type": "uint64"
+                },
+                {
+                    "name": "frozen_time",
+                    "type": "string"
+                }
+            ]
+        },
+        {
             "name": "game_info",
             "base": "",
             "fields": [
@@ -178,6 +196,10 @@
                 },
                 {
                     "name": "cities_remain",
+                    "type": "uint64"
+                },
+                {
+                    "name": "game_stage",
                     "type": "uint64"
                 },
                 {
@@ -299,6 +321,16 @@
                     "type": "string"
                 }
             ]
+        },
+        {
+            "name": "updatestage",
+            "base": "",
+            "fields": [
+                {
+                    "name": "stage",
+                    "type": "uint64"
+                }
+            ]
         }
     ],
     "types": [
@@ -366,12 +398,24 @@
             "name": "updateranktb",
             "type": "updateranktb",
             "ricardian_contract": ""
+        },
+        {
+            "name": "updatestage",
+            "type": "updatestage",
+            "ricardian_contract": ""
         }
     ],
     "tables": [
         {
             "name": "cities",
             "type": "city_info",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "frozen",
+            "type": "frozen_info",
             "index_type": "i64",
             "key_names": [],
             "key_types": []

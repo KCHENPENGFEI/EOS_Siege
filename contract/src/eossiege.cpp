@@ -5,8 +5,9 @@
 void EOSSiege::allstart()
 {
     /* after this action, then all the other actions can be act */
-    //require_auth(name);
-    //cities_table _cities(_self, _self.value);
+    // 只有本合约才能执行此action
+    require_auth(_self);
+    // 初始化城池信息
     for (uint64_t i = 1; i <= CITY_NUM; i++)
     {
         auto city_it = _cities.find(i);
@@ -19,8 +20,7 @@ void EOSSiege::allstart()
             });
         }
     }
-    // print(name{_self});
-    //global_table _global(_self, _self.value);
+    // 初始化全局信息
     auto global_it = _global.find(1);
     if (global_it == _global.end())
     {
@@ -35,11 +35,15 @@ void EOSSiege::transfer(name player_name, name to, asset quantity, string memo)
     vector<string> info;
     split(memo, ',', info);
 
-    //print(info[0].c_str());
+    // 缴纳入场费进入游戏
     if (!strcmp(info[0].c_str(), "StartSiege"))
     {
-        //startgame
+        // 一些assert
         require_auth(player_name);
+        // 确保游戏处于starting阶段
+        auto &global_it = _global.get(1, "get global table failed");
+        eosio_assert(global_it.game_stage == 1, "game is not in starting stage");
+        
         eosio_assert(player_name != to, "cannot transfer to self");
         eosio_assert(to == _self, "only can transfer the contract");
         
@@ -49,6 +53,7 @@ void EOSSiege::transfer(name player_name, name to, asset quantity, string memo)
         
         eosio_assert(quantity.is_valid(), "invalid quantity");
         eosio_assert(quantity.amount == ENTER_FEE, "must transfer 0.5 EOS to enter the game");
+        
         //startgame(player_name);
         //Authrozied
         //require_auth(player_name);
@@ -64,7 +69,7 @@ void EOSSiege::transfer(name player_name, name to, asset quantity, string memo)
 
         //players_table _players(_self, _self.value);
         
-        print(info[0].c_str());
+        // 向players表格中插入用户信息
         auto existing = _players.find(player_name.value);
         if (existing == _players.end())
         {
@@ -80,24 +85,28 @@ void EOSSiege::transfer(name player_name, name to, asset quantity, string memo)
             //initialize the game data for players
             content.game_data = game_data;
         });
-
-        //auto quantity = asset(ENTER_FEE, TOKEN_SYMBOL);
-        //asset enter_fee = asset(ENTER_FEE, symbol("ZJUBCA", 4));
     }
-    //else if(info[0].c_str() == "SiegeOccupation")
-    else if (!strcmp(info[0].c_str(), "SiegeOccupation"))
+    // 缴纳拍卖尾款占领城池
+    else if (!strcmp(info[0].c_str(), "SiegeOccupation1"))
     {
         require_auth(player_name);
+        // 确保游戏处于bidding阶段
+        auto &global_it = _global.get(1, "get global table failed");
+        eosio_assert(global_it.game_stage == 2, "game is not in bidding stage");
+        
         eosio_assert(player_name != to, "cannot transfer to self");
         eosio_assert(to == _self, "only can transfer the contract");
+        // 为了防止玩家恶意占领城池，加入身份验证信息，判断其是否在拍卖表中
+        auto rank_it = _rank.get(player_name.value, "you are not in the bidding player list");
         
         auto sym = quantity.symbol;
         eosio_assert(sym.is_valid(), "invalid symbol name");
         eosio_assert(sym == symbol("EOS", 4), "invalid symbol name");
         
         eosio_assert(quantity.is_valid(), "invalid quantity");
-        eosio_assert(quantity.amount == OCCUPATION_FEE, "must transfer 1.0000 ZJUBCA to occupy a city");
-        //uint64_t city_idx = strtoull(info[1].c_str(), NULL, 0);
+        // 确保用户缴纳数额正确
+        eosio_assert(quantity == rank_it.bidding_price, "bidding_price not match");
+        
         uint64_t city_idx = stoull(info[1].c_str());
         auto &player_it = _players.get(player_name.value, "Cannot find the player!");
         eosio_assert(player_it.is_attacker == 0, "You now are an attacker!");
@@ -116,7 +125,6 @@ void EOSSiege::transfer(name player_name, name to, asset quantity, string memo)
             content.belong_player = player_name;
         });
         
-        auto &global_it = _global.get(1, "Error when check global table!");
         eosio_assert(global_it.cities_remain > 0, "No city remained!");
         
         _global.modify(global_it, same_payer, [&](auto &content) {
@@ -173,6 +181,7 @@ void EOSSiege::transfer(name player_name, name to, asset quantity, string memo)
 
 void EOSSiege::updateranktb(uint64_t ranking, name player, asset bidding_price, string bidding_time)
 {
+  require_auth(_self);
   eosio_assert(ranking >= 1, "ranking is out of range");
   eosio_assert(ranking <= 25, "ranking is out of range");
   auto sym = bidding_price.symbol;
@@ -180,7 +189,7 @@ void EOSSiege::updateranktb(uint64_t ranking, name player, asset bidding_price, 
   eosio_assert(sym == symbol("EOS", 4), "invalid symbol name");
   eosio_assert(bidding_price.is_valid(), "invalid bidding_price");
   
-  auto rank_it = _rank.find(ranking);
+  auto rank_it = _rank.find(player.value);
   if(rank_it == _rank.end())
   {
     rank_it = _rank.emplace(_self, [&](auto &new_rank){
@@ -200,6 +209,17 @@ void EOSSiege::updateranktb(uint64_t ranking, name player, asset bidding_price, 
       content.bidding_time = bidding_time;
     });
   }
+}
+
+void EOSSiege::updatestage(uint64_t stage)
+{
+  require_auth(_self);
+  eosio_assert((stage == 1) || (stage == 2) || (stage == 3) || (stage == 4), "game stage error");
+  
+  auto &global_it = _global.get(1, "get global table failed");
+  _global.modify(global_it, same_payer, [&](auto &content) {
+    content.game_stage = stage;
+  });
 }
 
 void EOSSiege::departure(name player_name)
@@ -651,6 +671,9 @@ extern "C" {
                 break;
             case "updateranktb"_n.value:
                 execute_action(name(receiver), name(code), &EOSSiege::updateranktb);
+                break;
+            case "updatestage"_n.value:
+                execute_action(name(receiver), name(code), &EOSSiege::updatestage);
                 break;
             case "departure"_n.value:
                 execute_action(name(receiver), name(code), &EOSSiege::departure);
