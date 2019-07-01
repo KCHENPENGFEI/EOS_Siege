@@ -48,6 +48,7 @@ class [[eosio::contract("eossiege")]] EOSSiege : contract {
 
     //为了避免精度出现的问题，都采用整数保存和token相关的数据
     const map<soldier, point> soldiers_point = {
+        {0, 0},
         {1, 1000},
         {2, 1500},
         {3, 2000},
@@ -84,7 +85,7 @@ class [[eosio::contract("eossiege")]] EOSSiege : contract {
       {25, "东瀛"},
     };
 
-    const map<int, uint64_t> city_defense_index_map = {
+    const map<uint64_t, uint64_t> city_defense_index_map = {
       {1, 120},
       {2, 118},
       {3, 117},
@@ -132,23 +133,29 @@ class [[eosio::contract("eossiege")]] EOSSiege : contract {
         name player;
         bool is_attacker = FALSE;
         bool is_defender = FALSE;
-        bool be_attacked_request = FALSE;
-        bool in_battle = FALSE;
         name opponent = name(0);
-        bool if_win = FALSE;
-        bool if_lost = FALSE;
+        
+        // 3种状态进行切换
+        bool be_attacked_request = FALSE;
+        bool before_battle = FALSE;
+        bool in_battle = FALSE;
+        
+        // bool if_win = FALSE;
+        // bool if_lost = FALSE;
+        
         uint64_t own_city_id = 0;   // 0 means not own any city
         game_info game_data;
 
         auto primary_key() const {return player.value;}
     };
     
-    // @abi table cities
+    // @abi table citiess
     struct [[eosio::table]] city_info
     {
         uint64_t city_id;    //range from 1 - 25
         string city_name;
         uint64_t defense_index;
+        uint64_t realtime_price = 2400;   //The starting price is 0.2400 EOS
         bool if_be_occupied = FALSE;
         name belong_player = name(0);
         //uint64_t city_remain = 5;   //total quantity of cities is 5
@@ -225,7 +232,11 @@ class [[eosio::contract("eossiege")]] EOSSiege : contract {
     
     [[eosio::action]] void transfer(name from, name to, asset quantity, string memo);
     
-    [[eosio::action]] void updateranktb(uint64_t ranking, name player, asset bidding_price, string bidding_time);
+    [[eosio::action]] void allocatecity(name player_name, uint64_t city_idx, uint64_t price);
+    
+    [[eosio::action]] void freezeplayer(name player_name, uint64_t rank, string frozen_time);
+    
+    [[eosio::action]] void updateranktb(uint64_t ranking, name player_name, asset bidding_price, string bidding_time);
     
     [[eosio::action]] void updatestage(uint64_t stage);
     
@@ -235,13 +246,13 @@ class [[eosio::contract("eossiege")]] EOSSiege : contract {
 
     [[eosio::action]] void attack(name player_name, name defender_name);
 
-    [[eosio::action]] void defense(name player_name, name attacker_name, uint64_t choice);
+    [[eosio::action]] void defense(name player_name, name attacker_name, uint64_t city_id, uint64_t choice);
     
     [[eosio::action]] void picksoldier(name player_name, soldier soldier_type);
 
-    [[eosio::action]] void getresult(name player_name);
+    [[eosio::action]] void getresult(name attacker_name, name defender_name, uint64_t city_id, asset attacker_eos, asset defender_eos);
 
-    [[eosio::action]] void endgame(name player_name);
+    // [[eosio::action]] void endgame(name player_name);
 
     [[eosio::action]] void allend();
 };

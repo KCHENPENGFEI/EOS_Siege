@@ -1,11 +1,29 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Fri Jun 28 16:05:53 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Mon Jul  1 23:15:25 2019",
     "version": "eosio::abi/1.1",
     "structs": [
         {
             "name": "allend",
             "base": "",
             "fields": []
+        },
+        {
+            "name": "allocatecity",
+            "base": "",
+            "fields": [
+                {
+                    "name": "player_name",
+                    "type": "name"
+                },
+                {
+                    "name": "city_idx",
+                    "type": "uint64"
+                },
+                {
+                    "name": "price",
+                    "type": "uint64"
+                }
+            ]
         },
         {
             "name": "allstart",
@@ -65,6 +83,10 @@
                     "type": "uint64"
                 },
                 {
+                    "name": "realtime_price",
+                    "type": "uint64"
+                },
+                {
                     "name": "if_be_occupied",
                     "type": "bool"
                 },
@@ -91,6 +113,10 @@
                     "type": "name"
                 },
                 {
+                    "name": "city_id",
+                    "type": "uint64"
+                },
+                {
                     "name": "choice",
                     "type": "uint64"
                 }
@@ -107,12 +133,20 @@
             ]
         },
         {
-            "name": "endgame",
+            "name": "freezeplayer",
             "base": "",
             "fields": [
                 {
                     "name": "player_name",
                     "type": "name"
+                },
+                {
+                    "name": "rank",
+                    "type": "uint64"
+                },
+                {
+                    "name": "frozen_time",
+                    "type": "string"
                 }
             ]
         },
@@ -181,8 +215,24 @@
             "base": "",
             "fields": [
                 {
-                    "name": "player_name",
+                    "name": "attacker_name",
                     "type": "name"
+                },
+                {
+                    "name": "defender_name",
+                    "type": "name"
+                },
+                {
+                    "name": "city_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "attacker_eos",
+                    "type": "asset"
+                },
+                {
+                    "name": "defender_eos",
+                    "type": "asset"
                 }
             ]
         },
@@ -249,23 +299,19 @@
                     "type": "bool"
                 },
                 {
-                    "name": "be_attacked_request",
-                    "type": "bool"
-                },
-                {
-                    "name": "in_battle",
-                    "type": "bool"
-                },
-                {
                     "name": "opponent",
                     "type": "name"
                 },
                 {
-                    "name": "if_win",
+                    "name": "be_attacked_request",
                     "type": "bool"
                 },
                 {
-                    "name": "if_lost",
+                    "name": "before_battle",
+                    "type": "bool"
+                },
+                {
+                    "name": "in_battle",
                     "type": "bool"
                 },
                 {
@@ -309,7 +355,7 @@
                     "type": "uint64"
                 },
                 {
-                    "name": "player",
+                    "name": "player_name",
                     "type": "name"
                 },
                 {
@@ -350,6 +396,11 @@
             "ricardian_contract": ""
         },
         {
+            "name": "allocatecity",
+            "type": "allocatecity",
+            "ricardian_contract": ""
+        },
+        {
             "name": "allstart",
             "type": "allstart",
             "ricardian_contract": ""
@@ -370,8 +421,8 @@
             "ricardian_contract": ""
         },
         {
-            "name": "endgame",
-            "type": "endgame",
+            "name": "freezeplayer",
+            "type": "freezeplayer",
             "ricardian_contract": ""
         },
         {
