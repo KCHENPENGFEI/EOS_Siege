@@ -1,58 +1,102 @@
-//#include "siege.hpp"
+#include "eossiege.hpp"
 
-/* 1: win  -1: lost  0: tie */
+// 1: win  -1: lost  0: tie
 int EOSSiege::battleresult(soldier soldier1, soldier soldier2)
 {
+  if(soldier1 == none && soldier2 == none)
+  {
+    return 0;
+  }
+  else if(soldier1 == none && soldier2 != none)
+  {
+    return -1;
+  }
+  else if(soldier1 != none && soldier2 == none)
+  {
+    return 1;
+  }
+  else
+  {
     if(soldier1 == infantry)
     {
-        if(soldier2 == shieldman)
-            return 1;
-        else if(soldier2 == infantry)
-            return 0;
-        else
-            return -1;
+      if(soldier2 == shieldman)
+      {
+        return 1;
+      }
+      else if(soldier2 == archer || soldier2 == cavalry)
+      {
+        return -1;
+      }
+      else
+      {
+        return 0;
+      }
     }
-
-    if(soldier1 == spearman)
+    else if(soldier1 == spearman)
     {
-        if(soldier2 == infantry || soldier2 == shieldman)
-            return 1;
-        else if(soldier2 == cavalry)
-            return -1;
-        else
-            return 0;
+      if(soldier2 == cavalry)
+      {
+        return 1;
+      }
+      else if(soldier2 == shieldman || soldier2 == archer)
+      {
+        return-1;
+      }
+      else
+      {
+        return 0;
+      }
     }
-
-    if(soldier1 == shieldman)
+    else if(soldier1 == shieldman)
     {
-        if(soldier2 == archer)
-            return 1;
-        else if(soldier2 == shieldman)
-            return 0;
-        else
-            return -1;
+      if(soldier2 == spearman || soldier2 == archer)
+      {
+        return 1;
+      }
+      else if(soldier2 == infantry || soldier2 == cavalry)
+      {
+        return -1;
+      }
+      else
+      {
+        return 0;
+      }
     }
-
-    if(soldier1 == archer)
+    else if(soldier1 == archer)
     {
-        if(soldier2 == infantry || soldier2 == cavalry)
-            return 1;
-        else if(soldier2 == shieldman)
-            return -1;
-        else
-            return 0;
+      if(soldier2 == infantry || soldier2 == spearman)
+      {
+        return 1;
+      }
+      else if(soldier2 == shieldman)
+      {
+        return -1;
+      }
+      else
+      {
+        return 0;
+      }
     }
-
-    if(soldier1 == cavalry)
+    else if(soldier1 == cavalry)
     {
-        if(soldier2 == archer)
-            return -1;
-        else if(soldier2 == cavalry)
-            return 0;
-        else
-            return 1;
+      if(soldier2 == infantry || soldier2 == shieldman)
+      {
+        return 1;
+      }
+      else if(soldier2 == spearman)
+      {
+        return -1;
+      }
+      else
+      {
+        return 0;
+      }
     }
-    return 0;
+    else
+    {
+      return 0;
+    }
+  }
 }
 
 void EOSSiege::split(const string& s, char c, vector<string>& v) 
@@ -70,3 +114,7 @@ void EOSSiege::split(const string& s, char c, vector<string>& v)
       
     }
 }
+
+
+
+

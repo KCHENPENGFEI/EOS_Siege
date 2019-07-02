@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Mon Jul  1 23:15:25 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Tue Jul  2 17:17:53 2019",
     "version": "eosio::abi/1.1",
     "structs": [
         {
@@ -16,12 +16,12 @@
                     "type": "name"
                 },
                 {
-                    "name": "city_idx",
+                    "name": "city_id",
                     "type": "uint64"
                 },
                 {
                     "name": "price",
-                    "type": "uint64"
+                    "type": "asset"
                 }
             ]
         },
@@ -84,7 +84,7 @@
                 },
                 {
                     "name": "realtime_price",
-                    "type": "uint64"
+                    "type": "asset"
                 },
                 {
                     "name": "if_be_occupied",
@@ -325,6 +325,11 @@
             ]
         },
         {
+            "name": "temp",
+            "base": "",
+            "fields": []
+        },
+        {
             "name": "transfer",
             "base": "",
             "fields": [
@@ -438,6 +443,11 @@
         {
             "name": "picksoldier",
             "type": "picksoldier",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "temp",
+            "type": "temp",
             "ricardian_contract": ""
         },
         {
