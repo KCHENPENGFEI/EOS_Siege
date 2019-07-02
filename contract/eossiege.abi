@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Tue Jul  2 17:17:53 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Tue Jul  2 21:35:33 2019",
     "version": "eosio::abi/1.1",
     "structs": [
         {
@@ -325,6 +325,20 @@
             ]
         },
         {
+            "name": "settlement",
+            "base": "",
+            "fields": [
+                {
+                    "name": "player_name",
+                    "type": "name"
+                },
+                {
+                    "name": "city_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
             "name": "temp",
             "base": "",
             "fields": []
@@ -443,6 +457,11 @@
         {
             "name": "picksoldier",
             "type": "picksoldier",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "settlement",
+            "type": "settlement",
             "ricardian_contract": ""
         },
         {

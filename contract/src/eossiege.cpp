@@ -29,6 +29,15 @@ void EOSSiege::allstart()
           new_global.produce_rate = 0.0;
         });
     }
+    else
+    {
+        auto &global_it = _global.get(1, "get global table failed");
+        _global.modify(global_it, same_payer, [&](auto &content){
+          content.cities_remain = CITY_NUM;
+          content.game_stage = START;
+          content.produce_rate = 0.0;
+        });
+    }
 }
 
 void EOSSiege::transfer(name player_name, name to, asset quantity, string memo)
@@ -390,6 +399,8 @@ void EOSSiege::departure(name player_name)
     //Authrozied
     // require_auth(player_name);
     require_auth(_self);
+    // 确保玩家不在冻结名单
+    eosio_assert(_frozen.find(player_name.value) == _frozen.end(), "You are in frozen list");
     
     auto &global_it = _global.get(1, "get global table failed");
     eosio_assert(global_it.game_stage == RUNNING, "game is not in running stage");
@@ -414,8 +425,13 @@ void EOSSiege::leavecity(name player_name)
 {
     //Authrozied
     require_auth(player_name);
-
-    //players_table _players(_self, _self.value);
+    // 确保玩家不在冻结名单
+    eosio_assert(_frozen.find(player_name.value) == _frozen.end(), "You are in frozen list");
+    
+    auto &global_it = _global.get(1, "Error when check global table!");
+    eosio_assert(global_it.game_stage == RUNNING, "game is not in running stage");
+    eosio_assert(global_it.cities_remain < CITY_NUM, "All the city is not occupied!");
+    
     auto &player_it = _players.get(player_name.value, "Cannot find the player!");
     // 确保玩家拥有城池
     eosio_assert(player_it.is_defender == TRUE, "You don't have any city!");
@@ -431,13 +447,15 @@ void EOSSiege::leavecity(name player_name)
     auto quantity = asset(produced_bonus, symbol("EOS", 4));     //此处bonus仍然是固定的
     
     // 合约对外转账
-    action(
+    if(quantity.amount != 0)
+    {
+      action(
         permission_level{_self, "active"_n},
         "eosio.token"_n, "transfer"_n,
         std::make_tuple(_self, player_name, quantity,
                         std::string("You have got the bonus and left the city!")))
         .send();
-    
+    }
 
     //clear data
     _players.modify(player_it, same_payer, [&](auto &content) {
@@ -448,12 +466,8 @@ void EOSSiege::leavecity(name player_name)
     _cities.modify(city_it, same_payer, [&](auto &content) {
         content.if_be_occupied = FALSE;
         content.belong_player = name(0);
-        content.produced_bonus = 100;
+        content.produced_bonus = 0;
     });
-
-    //global_table _global(_self, _self.value);
-    auto &global_it = _global.get(1, "Error when check global table!");
-    eosio_assert(global_it.cities_remain < CITY_NUM, "All the city is not occupied!");
 
     _global.modify(global_it, same_payer, [&](auto &content) {
         content.cities_remain += 1;
@@ -475,10 +489,16 @@ void EOSSiege::attack(name player_name, name defender_name)
     //Authrozied
     // require_auth(player_name);
     require_auth(_self);   // 改成了合约才能操作
-
-    //players_table _players(_self, _self.value);
+    // 确保玩家不在冻结名单
+    eosio_assert(_frozen.find(player_name.value) == _frozen.end(), "You are in frozen list");
+    
+    auto &global_it = _global.get(1, "Error when check global table!");
+    eosio_assert(global_it.game_stage == RUNNING, "game is not in running stage");
+    
+    // 确保玩家为游民
     auto &player_it = _players.get(player_name.value, "Cannot find the player!");
     eosio_assert(player_it.is_attacker == FALSE, "You are an attacker now!");
+    eosio_assert(player_it.is_defender == FALSE, "You are a defender now");
     
     auto &defender_it = _players.get(defender_name.value, "Cannot find your target!");
     // 确保玩家为防守者，并且不处于被攻击状态
@@ -537,7 +557,13 @@ void EOSSiege::defense(name player_name, name attacker_name, uint64_t city_id, u
     //Authrozied
     // require_auth(player_name);
     require_auth(_self);
-
+    
+    // 确保玩家不在冻结名单
+    eosio_assert(_frozen.find(player_name.value) == _frozen.end(), "You are in frozen list");
+    
+    auto &global_it = _global.get(1, "Error when check global table!");
+    eosio_assert(global_it.game_stage == RUNNING, "game is not in running stage");
+    
     //players_table _players(_self, _self.value);
     auto &player_it = _players.get(player_name.value, "Cannot find the player!");
     auto &attacker_it = _players.get(attacker_name.value, "Cannot find the attacker!");
@@ -576,7 +602,7 @@ void EOSSiege::defense(name player_name, name attacker_name, uint64_t city_id, u
         //modify city's data
         _cities.modify(city_it, same_payer, [&](auto &content) {
             content.belong_player = attacker_name;
-            content.produced_bonus = 100;
+            content.produced_bonus = 0;
         });
 
         //modify attacker's data
@@ -607,7 +633,7 @@ void EOSSiege::defense(name player_name, name attacker_name, uint64_t city_id, u
       //   content.own_city_id = city_id;
       // })
     }
-    else
+    else if(choice == 1)
     {
         //choice 1: defense 
         _players.modify(player_it, same_payer, [&](auto &content) {
@@ -621,6 +647,10 @@ void EOSSiege::defense(name player_name, name attacker_name, uint64_t city_id, u
           content.before_battle = TRUE;
         });
     }
+    else
+    {
+      // Error
+    }
 }
 
 void EOSSiege::picksoldier(name player_name, soldier soldier_type)
@@ -628,18 +658,24 @@ void EOSSiege::picksoldier(name player_name, soldier soldier_type)
     //Authrozied
     // require_auth(player_name);
     require_auth(_self);
-
+    
+    // 确保玩家不在冻结名单
+    eosio_assert(_frozen.find(player_name.value) == _frozen.end(), "You are in frozen list");
+    
+    auto &global_it = _global.get(1, "Error when check global table!");
+    eosio_assert(global_it.game_stage == RUNNING, "game is not in running stage");
+    
     //players_table _players(_self, _self.value);
     auto &player_it = _players.get(player_name.value, "Cannot find the player!");
     // 确保玩家处在in_battle阶段
     eosio_assert(player_it.in_battle == TRUE, "You are not in any battle");
-
+    
+    // 确保round <= 5，且上一轮已经结束
+    eosio_assert(player_it.game_data.round_id <= 5, "This attack is over!");
+    eosio_assert(player_it.game_data.is_round_over == TRUE, "Last round is not over");
+    
     _players.modify(player_it, same_payer, [&](auto &content) {
         game_info game_data = content.game_data;
-
-        eosio_assert(game_data.round_id <= 5, "This attack is over!");    //changed
-        eosio_assert(game_data.is_round_over == TRUE, "Last round is not over");
-
         // game_data.round_id += 1;  // round_id不在此action更新
         if (soldier_type == 0)
         {
@@ -657,7 +693,7 @@ void EOSSiege::picksoldier(name player_name, soldier soldier_type)
         }
         
         game_data.soldier_selected = soldier_type;
-        game_data.is_round_over = FALSE;
+        game_data.is_round_over = FALSE;    // 本轮开启标志
         content.game_data = game_data;
     });
 }
@@ -667,15 +703,16 @@ void EOSSiege::getresult(name attacker_name, name defender_name, uint64_t city_i
     //Authrozied
     // require_auth(player_name);
     require_auth(_self);
-
-    //players_table _players(_self, _self.value);
+    // 确保双方不在冻结名单
+    eosio_assert(_frozen.find(attacker_name.value) == _frozen.end(), "The attacker is in the frozen list");
+    eosio_assert(_frozen.find(defender_name.value) == _frozen.end(), "The defender is in the frozen list");
+    
+    auto &global_it = _global.get(1, "Error when check global table!");
+    eosio_assert(global_it.game_stage == RUNNING, "game is not in running stage");
+    
     auto &attacker_it = _players.get(attacker_name.value, "Cannot find the attacker!");
     auto &defender_it = _players.get(defender_name.value, "Cannot find the defender!");
     auto &city_it = _cities.get(city_id, "Cannot find the city!");
-    
-    //print(city_id);
-    
-    //uint64_t current_city = city_it.city_id;
     
     // 确保双方处于in_battle状态
     eosio_assert(attacker_it.in_battle == TRUE, "The attacker is not in any battle");
@@ -808,7 +845,7 @@ void EOSSiege::getresult(name attacker_name, name defender_name, uint64_t city_i
         //modify city's data
         _cities.modify(city_it, same_payer, [&](auto &content) {
             content.belong_player = attacker_name;
-            content.produced_bonus = 100;
+            content.produced_bonus = 0;
         });
 
         //modify attacker's data
@@ -946,55 +983,68 @@ void EOSSiege::getresult(name attacker_name, name defender_name, uint64_t city_i
     }
 }
 
-// void EOSSiege::endgame(name player_name)
-// {
-//     //Authrozied
-//     require_auth(player_name);
+void EOSSiege::settlement(name player_name, uint64_t city_id)
+{
+  require_auth(_self);
+  // 确保玩家不在冻结名单
+  eosio_assert(_frozen.find(player_name.value) == _frozen.end(), "You are in frozen list");
+  
+  auto &player_it = _players.get(player_name.value, "Cannot find the player!");
+  auto &city_it = _cities.get(city_id, "Cannot find the city!");
+  auto &global_it = _global.get(1, "Error when check global table!");
+  
+  eosio_assert(city_it.belong_player == player_name, "You don't have this city");
+  uint64_t produced_bonus = city_it.produced_bonus;
+  auto quantity = asset(produced_bonus, symbol("EOS", 4));
+  
+  // 游戏状态切换至SETTLING
+  _global.modify(global_it, same_payer, [&](auto &content){
+    content.game_stage = SETTLING;
+  });
+  
+  // 确保转账能够成功
+  if(quantity.amount != 0)
+  {
+    action(
+      permission_level{_self, "active"_n},
+      "eosio.token"_n, "transfer"_n,
+      std::make_tuple(_self, player_name, quantity,
+                      std::string("game over and you take your bonus")))
+      .send();
+  }
+  
+  _cities.modify(city_it, same_payer, [&](auto &content){
+    content.if_be_occupied = FALSE;
+    content.belong_player = name(0);
+    content.produced_bonus = 0;
+  });
+}
 
-//     //players_table _players(_self, _self.value);
-//     // clear all the data
-//     auto &player_it = _players.get(player_name.value, "Cannot find the player!");
-
-//     _players.modify(player_it, same_payer, [&](auto &content) {
-//         content.opponent = name(0);
-//         content.if_win = FALSE;
-//         content.if_lost = FALSE;
-
-//         game_info game_data;
-//         content.game_data = game_data;
-//         if (player_it.is_attacker == FALSE && player_it.is_defender == FALSE)
-//         {
-//             //not a defender
-//             content.own_city_id = 0;
-//         }
-//     });
-// }
-
-/* transfer error */
 void EOSSiege::allend()
 {
     //players_table _players(_self, _self.value);
     //cities_table _cities(_self, _self.value);
     //global_table _global(_self, _self.value);
     /* clear cities data */
-    for (int city_id = 1; city_id <= CITY_NUM; city_id++)
-    {
-        auto &city_it = _cities.get(city_id, "Cannot find the city!");
+    // for (int city_id = 1; city_id <= CITY_NUM; city_id++)
+    // {
+    //     auto &city_it = _cities.get(city_id, "Cannot find the city!");
+        
+    //     // 本场游戏结束，为每一位守城者结算
+    //     name own_name = city_it.belong_player;
+    //     uint64_t produced_bonus = city_it.produced_bonus;
+    //     if (own_name.value != 0 && produced_bonus != 0)
+    //     {
+    //         auto quantity = asset(produced_bonus, symbol("EOS", 4));
 
-        name own_name = city_it.belong_player;
-        uint64_t produced_bonus = city_it.produced_bonus;
-        if (own_name.value != 0 && produced_bonus != 0)
-        {
-            auto quantity = asset(produced_bonus, symbol("EOS", 4));
-
-            action(
-                permission_level{_self, "active"_n},
-                "eosio.token"_n, "transfer"_n,
-                std::make_tuple(_self, own_name, quantity,
-                                std::string("You have got the bonus and left the city!")))
-                .send();
-        }
-    }
+    //         action(
+    //             permission_level{_self, "active"_n},
+    //             "eosio.token"_n, "transfer"_n,
+    //             std::make_tuple(_self, own_name, quantity,
+    //                             std::string("You have got the bonus and left the city!")))
+    //             .send();
+    //     }
+    // }
 
     /* delete the cities table */
     auto cities_begin_it = _cities.begin();
@@ -1003,7 +1053,6 @@ void EOSSiege::allend()
         cities_begin_it = _cities.erase(cities_begin_it);
     }
 
-    /* delete the global table */
     auto global_begin_it = _global.begin();
     while (global_begin_it != _global.end())
     {
@@ -1023,6 +1072,14 @@ void EOSSiege::allend()
     {
       rank_begin_it = _rank.erase(rank_begin_it);
     }
+    
+    // 更新全局表
+    // auto &global_it = _global.get(1, "Error when check global table!");
+    // _global.modify(global_it, same_payer, [&](auto &content){
+    //   content.cities_remain = CITY_NUM;
+    //   content.game_stage = END;
+    //   content.produce_rate = 0.0;
+    // });
 }
 
 
@@ -1068,9 +1125,9 @@ extern "C" {
             case "getresult"_n.value:
                 execute_action(name(receiver), name(code), &EOSSiege::getresult);
                 break;
-            // case "endgame"_n.value:
-            //     execute_action(name(receiver), name(code), &EOSSiege::endgame);
-            //     break;
+            case "settlement"_n.value:
+                execute_action(name(receiver), name(code), &EOSSiege::settlement);
+                break;
             case "allend"_n.value:
                 execute_action(name(receiver), name(code), &EOSSiege::allend);
                 break;

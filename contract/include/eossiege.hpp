@@ -34,7 +34,8 @@ class [[eosio::contract("eossiege")]] EOSSiege : contract {
         START = 1,
         BIDDING = 2,
         RUNNING = 3,
-        END = 4
+        SETTLING = 4,
+        END = 5
     };
 
     //soldier type 兵种：步兵、矛兵、盾兵、弓箭手、骑兵
@@ -164,7 +165,7 @@ class [[eosio::contract("eossiege")]] EOSSiege : contract {
         name belong_player = name(0);
         //uint64_t city_remain = 5;   //total quantity of cities is 5
         //double produce_rate = 0;
-        uint64_t produced_bonus = 1;
+        uint64_t produced_bonus = 0;
 
         auto primary_key() const {return city_id;}
     };
@@ -173,7 +174,7 @@ class [[eosio::contract("eossiege")]] EOSSiege : contract {
     struct [[eosio::table]] global_info
     {
         uint64_t key = 1;
-        uint64_t cities_remain = 25;  // total quantity of cities is 5
+        uint64_t cities_remain = CITY_NUM;  // total quantity of cities is 5
         uint64_t game_stage = 0;
         double produce_rate;
 
@@ -255,6 +256,8 @@ class [[eosio::contract("eossiege")]] EOSSiege : contract {
     [[eosio::action]] void picksoldier(name player_name, soldier soldier_type);
 
     [[eosio::action]] void getresult(name attacker_name, name defender_name, uint64_t city_id, asset attacker_eos, asset defender_eos);
+    
+    [[eosio::action]] void settlement(name player_name, uint64_t city_id);
     
     [[eosio::action]] void temp();
 
