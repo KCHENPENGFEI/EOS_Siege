@@ -122,7 +122,6 @@ class [[eosio::contract("eossiege")]] EOSSiege : contract {
     struct game_info
     {
         uint64_t round_id = 0;
-        bool prepare_ok = FALSE;
         point all_soldiers_point = 0;     //总兵力
         point current_soldiers_point = 0;     //当前剩余兵力
         uint64_t soldier_quantity = 0;        //士兵数量

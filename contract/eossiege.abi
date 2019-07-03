@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Wed Jul  3 09:43:48 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Wed Jul  3 10:04:54 2019",
     "version": "eosio::abi/1.1",
     "structs": [
         {
@@ -175,10 +175,6 @@
                 {
                     "name": "round_id",
                     "type": "uint64"
-                },
-                {
-                    "name": "prepare_ok",
-                    "type": "bool"
                 },
                 {
                     "name": "all_soldiers_point",
